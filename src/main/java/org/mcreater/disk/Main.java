@@ -122,7 +122,7 @@ public class Main {
                     }
                     catch (Exception exce) {}
 
-
+                    boolean sh = false;
                     try {
                         BufferedReader reader = new BufferedReader(new FileReader(dmt.path));
                         Object[] raw = reader.lines().toArray();
@@ -133,11 +133,20 @@ public class Main {
                             index++;
                             bar2.setString(index + " / " + raw.length);
                             bar2.setValue((int) index);
+                            if (index > 100) {
+                                bar2.setValue(raw.length);
+                                if (!sh) {
+                                    int n=JOptionPane.showConfirmDialog(null,"是否继续加载?","文件过大", JOptionPane.YES_NO_OPTION );
+                                    sh = true;
+                                    if (n == 1) break;
+                                }
+                            }
                         }
                         bar2.setString("");
                     } catch (Exception ex) {
                         bar2.setString("");
                         bar2.setValue(0);
+                        JOptionPane.showMessageDialog(null,"无法读取文件","文件损坏", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             });
