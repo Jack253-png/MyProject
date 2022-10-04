@@ -1,10 +1,6 @@
 package org.mcreater.disk;
 
-import com.formdev.flatlaf.FlatDarculaLaf;
-import com.formdev.flatlaf.FlatDarkLaf;
-import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLightLaf;
-import com.formdev.flatlaf.FlatPropertiesLaf;
 import com.google.gson.GsonBuilder;
 import net.querz.mca.Chunk;
 import net.querz.mca.MCAFile;
@@ -24,6 +20,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
@@ -52,6 +51,7 @@ public class Main {
         }
     }
     public void doMain(){
+        JFrame.setDefaultLookAndFeelDecorated(false);
         FlatLightLaf.install();
 
         UIManager.installLookAndFeel("Flat Light 主题", "com.formdev.flatlaf.FlatLightLaf");
@@ -59,26 +59,11 @@ public class Main {
         UIManager.installLookAndFeel("Flat Dark 主题", "com.formdev.flatlaf.FlatDarkLaf");
         UIManager.installLookAndFeel("Flat Darcula 主题", "com.formdev.flatlaf.FlatDarculaLaf");
         UIManager.installLookAndFeel("Mac OS 主题", ch.randelshofer.quaqua.QuaquaManager.getLookAndFeelClassName());
-        UIManager.installLookAndFeel("Acryl 主题", "com.jtattoo.plaf.acryl.AcrylLookAndFeel");
-        UIManager.installLookAndFeel("Aero 主题", "com.jtattoo.plaf.aero.AeroLookAndFeel");
-        UIManager.installLookAndFeel("Aluminium 主题", "com.jtattoo.plaf.aluminium.AluminiumLookAndFeel");
-        UIManager.installLookAndFeel("Bernstein 主题", "com.jtattoo.plaf.bernstein.BernsteinLookAndFeel");
-        UIManager.installLookAndFeel("Fast 主题", "com.jtattoo.plaf.fast.FastLookAndFeel");
-        UIManager.installLookAndFeel("Graphite 主题", "com.jtattoo.plaf.graphite.GraphiteLookAndFeel");
-        UIManager.installLookAndFeel("HiFi 主题", "com.jtattoo.plaf.hifi.HiFiLookAndFeel");
-        UIManager.installLookAndFeel("Luna 主题", "com.jtattoo.plaf.luna.LunaLookAndFeel");
-        UIManager.installLookAndFeel("Mc Win 主题", "com.jtattoo.plaf.mcwin.McWinLookAndFeel");
-        UIManager.installLookAndFeel("Mint 主题", "com.jtattoo.plaf.mint.MintLookAndFeel");
-        UIManager.installLookAndFeel("Noire 主题", "com.jtattoo.plaf.noire.NoireLookAndFeel");
-        UIManager.installLookAndFeel("Smart 主题", "com.jtattoo.plaf.smart.SmartLookAndFeel");
-        UIManager.installLookAndFeel("Texture 主题", "com.jtattoo.plaf.texture.TextureLookAndFeel");
-
-
-        JFrame.setDefaultLookAndFeelDecorated(false);
 
         JMenuBar bar = new JMenuBar();
         bar.add(createFileMenu());
         bar.add(createOpenMenu());
+        bar.add(createAboutMenu());
         bar.add(createThemeMenu());
 
         jf = new JFrame("文件打开器");
@@ -124,25 +109,59 @@ public class Main {
 
                     boolean sh = false;
                     try {
-                        BufferedReader reader = new BufferedReader(new FileReader(dmt.path));
-                        Object[] raw = reader.lines().toArray();
-                        long index = 0;
-                        bar2.setMaximum(raw.length);
-                        for (Object o : raw) {
-                            area.append(o.toString() + "\n");
-                            index++;
-                            bar2.setString(index + " / " + raw.length);
-                            bar2.setValue((int) index);
-                            if (index > 100) {
-                                bar2.setValue(raw.length);
-                                if (!sh) {
-                                    int n=JOptionPane.showConfirmDialog(null,"是否继续加载?","文件过大", JOptionPane.YES_NO_OPTION );
-                                    sh = true;
-                                    if (n == 1) break;
+                        InputStream stream = Files.newInputStream(dmt.path.toPath());
+                        int available = stream.available();
+                        int t0 = available;
+                        area.append("                            00     01     02     03     04     05     06     07     08     09     0A     0B     0C     0D     0E     0F\n");
+
+                        byte[] b = new byte[16];
+
+                        int index = 0;
+                        bar2.setMaximum(available);
+                        while (available != 0) {
+                            int temp = available;
+                            int len = stream.read(b);
+                            if (len == -1) break;
+                            available = stream.available();
+                            bar2.setValue(index * 16);
+
+                            if (temp < 16) {
+                                for (int f = temp; f < 16; f++) {
+                                    b[f] = " ".getBytes(StandardCharsets.UTF_8)[0];
                                 }
                             }
+
+                            String t = String.valueOf(index * 16);
+                            int y = t.length();
+                            for (int d = y; d < 26 - y; d++) t += " ";
+                            t = "+" + t;
+
+                            area.append(String.format("%s%s     %s     %s     %s     %s     %s     %s     %s     %s     %s     %s     %s     %s     %s     %s     %s",
+                                    t,
+                                    toHEX(b[0]),
+                                    toHEX(b[1]),
+                                    toHEX(b[2]),
+                                    toHEX(b[3]),
+                                    toHEX(b[4]),
+                                    toHEX(b[5]),
+                                    toHEX(b[6]),
+                                    toHEX(b[7]),
+                                    toHEX(b[8]),
+                                    toHEX(b[9]),
+                                    toHEX(b[10]),
+                                    toHEX(b[11]),
+                                    toHEX(b[12]),
+                                    toHEX(b[13]),
+                                    toHEX(b[14]),
+                                    toHEX(b[15])
+                            ));
+                            area.append("          " + new String(b).replace("\n", "").replace(" ", ".") + "\n");
+                            index++;
+                            Thread.sleep(5);
                         }
-                        bar2.setString("");
+                        stream.close();
+                        bar2.setValue(t0);
+
                     } catch (Exception ex) {
                         bar2.setString("");
                         bar2.setValue(0);
@@ -184,6 +203,14 @@ public class Main {
         jf.setVisible(true);
         tree.setExpandsSelectedPaths(true);
     }
+    private String toHEX(byte b) {
+        if (b < 0) return toHEX((byte) (b + 127));
+        String s = Integer.toHexString(b);
+        if (s.length() == 1) {
+            s = "0" + s;
+        }
+        return s;
+    }
     public void addItems(PathTreeNode root, File path) {
         if (path.listFiles() != null) {
             CountDownLatch latch = new CountDownLatch(path.listFiles().length);
@@ -202,6 +229,55 @@ public class Main {
                 }
             }
         }
+    }
+    private JMenu createAboutMenu() {
+        JMenu menu = new JMenu("关于(A)");
+        menu.setMnemonic(KeyEvent.VK_A);
+        JMenuItem item = new JMenuItem("");
+        item.setAction(new AbstractAction("Github 仓库(G)") {
+            public void actionPerformed(ActionEvent e) {
+                if (Desktop.isDesktopSupported()) {
+                    try {
+                        Desktop.getDesktop().browse(URI.create("https://github.com/Jack253-png/MyProject"));
+                    } catch (IOException ignored) {
+
+                    }
+                }
+            }
+        });
+        menu.add(item);
+        item = new JMenuItem("");
+        item.setAction(new AbstractAction("问题反馈(I)") {
+            public void actionPerformed(ActionEvent e) {
+                if (Desktop.isDesktopSupported()) {
+                    try {
+                        Desktop.getDesktop().browse(URI.create("https://github.com/Jack253-png/MyProject/issues"));
+                    } catch (IOException ignored) {
+
+                    }
+                }
+            }
+        });
+        menu.add(item);
+        item = new JMenuItem("");
+        item.setAction(new AbstractAction("关于作者(U)") {
+            public void actionPerformed(ActionEvent e) {
+                JPanel panel = new JPanel();
+                panel.setLayout(new FlowLayout(FlowLayout.LEFT, 6, 6));
+                panel.add(new JLabel("作者: "));
+                panel.add(new JLabel("      Jack253-png(Github)"));
+
+                JDialog dialog = new JDialog();
+                dialog.setContentPane(panel);
+                dialog.setTitle("关于作者");
+                dialog.setSize(200, 100);
+                dialog.setResizable(false);
+                dialog.show();
+            }
+        });
+        menu.add(item);
+
+        return menu;
     }
     private JMenu createOpenMenu() {
         JMenu menu=new JMenu("运行(R)");
